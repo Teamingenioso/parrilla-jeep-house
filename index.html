@@ -195,6 +195,32 @@ dialog::backdrop{background:rgba(0,0,0,.18)}
 .dlinks a:hover{text-decoration:underline}
 .dlinks a.vid{margin-top:0}
 .dlinks a.vid:hover{color:var(--dim);text-decoration:none}
+/* GALERIA:inicio */
+.dgal[hidden]{display:none}
+.gal{position:relative;border:1px solid var(--faint);border-radius:12px;overflow:hidden;background:rgba(0,0,0,.4)}
+.gtrack{display:flex;width:100%;aspect-ratio:var(--ar,4/5);max-height:min(58vh,540px);overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;outline:none}
+.gtrack::-webkit-scrollbar{display:none}
+.gslide{flex:0 0 100%;min-width:0;scroll-snap-align:center;display:flex;align-items:center;justify-content:center}
+.gslide img{width:100%;height:100%;object-fit:contain;display:block;-webkit-user-drag:none}
+.gslide.miss{flex-direction:column;gap:8px;padding:20px;text-align:center;color:var(--dim);font-size:.85rem;line-height:1.4}
+.gslide.miss a{color:var(--white);font-weight:700;overflow-wrap:anywhere}
+.gnav{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;display:grid;place-items:center;font:inherit;font-size:1.25rem;line-height:1;padding:0 0 3px;border-radius:999px;border:1px solid var(--faint);background:rgba(10,10,10,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--white);cursor:pointer;transition:opacity .2s,border-color .2s}
+.gnav.prev{left:10px}
+.gnav.next{right:10px}
+.gnav:hover:not(:disabled){border-color:var(--white)}
+.gnav:disabled{opacity:0;pointer-events:none}
+.gcount{position:absolute;top:10px;right:10px;font-size:.68rem;font-weight:700;letter-spacing:.06em;color:var(--white);background:rgba(10,10,10,.55);border:1px solid var(--faint);border-radius:999px;padding:3px 9px;pointer-events:none}
+.gthumbs{display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+.gthumbs::-webkit-scrollbar{display:none}
+.gth{position:relative;flex:0 0 auto;width:48px;aspect-ratio:var(--ar,4/5);max-height:64px;padding:0;overflow:hidden;font:inherit;font-size:.7rem;font-weight:700;color:var(--dim);background:rgba(0,0,0,.4);border:1px solid var(--faint);border-radius:8px;cursor:pointer;opacity:.6;transition:opacity .2s,border-color .2s}
+.gth img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.gth:hover{opacity:1}
+.gth[aria-current=true]{opacity:1;border-color:var(--yellow);box-shadow:0 0 0 1px var(--yellow)}
+.dgal.fail .gtrack{aspect-ratio:auto;height:150px}
+.dgal.fail .gth{aspect-ratio:auto;height:34px}
+.dsec .gnote{margin:10px 0 0;color:var(--dim);font-size:.8rem;line-height:1.45}
+@media(prefers-reduced-motion:reduce){.gnav,.gth{transition:none}}
+/* GALERIA:fin */
 .dnote{margin:16px 0 0;color:var(--dim);font-size:.8rem;line-height:1.45}
 .made{border-top:1px solid var(--faint);padding:46px 0 54px;text-align:center;margin-top:56px}
 .made p{margin:0 0 14px;color:var(--dim);font-size:.82rem;text-transform:uppercase;letter-spacing:.14em}
@@ -288,6 +314,19 @@ dialog::backdrop{background:rgba(0,0,0,.18)}
   <div class="dtop"><div class="dtags" id="dtags"></div><button type="button" class="dx" id="dclose" aria-label="Cerrar">✕</button></div><div class="canales" id="dcanales"></div>
   <h3 id="dt"></h3>
   <p class="dwhen" id="dwhen"></p>
+<!-- GALERIA:inicio -->
+  <div class="dsec dgal" id="dgal" hidden>
+   <div class="dlab">Previsualización <small id="dgsub"></small></div>
+   <div class="gal" id="gal">
+    <div class="gtrack" id="gtrack" tabindex="0" role="group" aria-roledescription="carrusel" aria-label="Láminas del carrusel"></div>
+    <button type="button" class="gnav prev" id="gprev" aria-label="Lámina anterior">‹</button>
+    <button type="button" class="gnav next" id="gnext" aria-label="Lámina siguiente">›</button>
+    <span class="gcount" id="gcount" aria-live="polite"></span>
+   </div>
+   <div class="gthumbs" id="gthumbs"></div>
+   <p class="gnote" id="gnote" hidden>Las láminas se ven con acceso al Drive del proyecto. Si no cargan, ábrelas con «Abrir en Drive».</p>
+  </div>
+<!-- GALERIA:fin -->
   <div class="dsec"><div class="dlab">Caption <small>borrador de la parrilla</small></div><p id="dcap"></p><button type="button" class="copy" id="dcopy">Copiar caption</button></div>
   <div class="dsec"><div class="dlab">Objetivo</div><p id="dobj"></p></div>
   <div class="dsec"><div class="dlab">Día óptimo</div><p id="dopt"></p></div>
@@ -430,6 +469,53 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden && 
 var P=[];try{P=JSON.parse(document.getElementById('piezas').textContent);}catch(e){}
 var d=document.getElementById('det');
 function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
+/* GALERIA:inicio */
+var G={i:0,n:0};
+function dthumb(id,w,v){return 'https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w'+w+(v?'&v='+encodeURIComponent(v):'');}
+function gmark(k){
+ G.i=k; var th=document.getElementById('gthumbs');
+ document.getElementById('gcount').textContent=(k+1)+' / '+G.n;
+ document.getElementById('gprev').disabled=k<=0; document.getElementById('gnext').disabled=k>=G.n-1;
+ Array.prototype.forEach.call(th.children,function(b,j){ if(j===k){b.setAttribute('aria-current','true'); th.scrollTo({left:b.offsetLeft-(th.clientWidth-b.offsetWidth)/2,behavior:'auto'});} else b.removeAttribute('aria-current'); });
+}
+function ggo(k){
+ var tr=document.getElementById('gtrack'); if(!G.n||!tr.clientWidth)return;
+ k=Math.max(0,Math.min(G.n-1,k));
+ var calm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+ tr.scrollTo({left:k*tr.clientWidth,behavior:calm?'auto':'smooth'});
+}
+function galeria(p){
+ var sec=document.getElementById('dgal'), tr=document.getElementById('gtrack'), th=document.getElementById('gthumbs'), nt=document.getElementById('gnote'), ids=p.imgs||[];
+ tr.textContent=''; th.textContent=''; nt.hidden=true; sec.classList.remove('fail'); sec.style.removeProperty('--ar'); G.n=ids.length; G.i=0;
+ sec.hidden=!ids.length; if(!ids.length)return;
+ document.getElementById('dgsub').textContent=ids.length+(ids.length===1?' lámina':' láminas');
+ ids.forEach(function(id,k){
+  var s=el('div','gslide'), im=new Image(), b=el('button','gth',String(k+1)), ti=new Image();
+  im.alt='Lámina '+(k+1)+' de '+ids.length+' · '+p.title; im.decoding='async'; im.referrerPolicy='no-referrer'; if(k>0)im.loading='lazy';
+  im.onload=function(){ if(k===0&&im.naturalWidth&&im.naturalHeight) sec.style.setProperty('--ar',im.naturalWidth+'/'+im.naturalHeight); };
+  im.onerror=function(){
+   s.className='gslide miss'; s.textContent=''; s.appendChild(el('span',null,'Lámina '+(k+1)+' no disponible aquí'));
+   var a=el('a',null,'Abrir en Drive'); a.href='https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view'; a.target='_blank'; a.rel='noopener'; s.appendChild(a);
+   nt.hidden=false; if(k===0)sec.classList.add('fail');
+  };
+  im.src=dthumb(id,1600,p.imv); s.appendChild(im); tr.appendChild(s);
+  b.type='button'; b.setAttribute('aria-label','Ir a la lámina '+(k+1));
+  ti.alt=''; ti.decoding='async'; ti.loading='lazy'; ti.referrerPolicy='no-referrer'; ti.onerror=function(){ti.remove();}; ti.src=dthumb(id,240,p.imv); b.appendChild(ti);
+  b.onclick=function(){ggo(k);}; th.appendChild(b);
+ });
+ gmark(0); tr.scrollLeft=0;
+}
+(function(){
+ var tr=document.getElementById('gtrack'), raf=0;
+ tr.addEventListener('scroll',function(){ if(raf)return; raf=requestAnimationFrame(function(){ raf=0; if(!G.n||!tr.clientWidth)return; var k=Math.round(tr.scrollLeft/tr.clientWidth); if(k!==G.i)gmark(Math.max(0,Math.min(G.n-1,k))); }); },{passive:true});
+ document.getElementById('gprev').onclick=function(){ggo(G.i-1);};
+ document.getElementById('gnext').onclick=function(){ggo(G.i+1);};
+ document.getElementById('det').addEventListener('keydown',function(e){
+  if(!G.n||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.key==='ArrowRight'){ggo(G.i+1);e.preventDefault();} else if(e.key==='ArrowLeft'){ggo(G.i-1);e.preventDefault();}
+ });
+})();
+/* GALERIA:fin */
 function open(i){
  var p=P[i]; if(!p)return;
  var tg=document.getElementById('dtags'); tg.textContent=''; var dc=document.getElementById('dcanales'); dc.textContent='';
@@ -446,7 +532,9 @@ function open(i){
  if(p.vurl){var a=el('a','vid',p.vlabel); a.href=p.vurl; a.target='_blank'; a.rel='noopener'; lk.appendChild(a);}
  if(p.codeUrl){var b=el('a',null,p.codeLabel); b.href=p.codeUrl; b.target='_blank'; b.rel='noopener'; lk.appendChild(b);}
  document.getElementById('dcopy').textContent='Copiar caption';
+ galeria(p);
  if(d.showModal){ if(!d.open) d.showModal(); } else { d.setAttribute('open',''); }
+ if(G.n){ var tr=document.getElementById('gtrack'); tr.scrollLeft=0; gmark(0); }
 }
 document.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){open(+b.getAttribute('data-open'));});});
 document.getElementById('dclose').onclick=function(){d.close();};
